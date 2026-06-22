@@ -2,6 +2,10 @@
 predictor.py
 Load model dan fungsi inference untuk aplikasi Streamlit.
 Menggunakan @st.cache_resource agar model hanya di-load sekali.
+
+Optimasi cold-start:
+- Tokenizer di-save lokal ke model/tokenizer_cache/ saat pertama run
+- Selanjutnya load dari disk, tidak perlu download HuggingFace lagi
 """
 
 import os
@@ -19,23 +23,24 @@ if ROOT not in sys.path:
 from model.model_def import IndoBERTCNN
 
 # ── Konfigurasi model (harus identik dengan saat training) ───────────────────
-BERT_MODEL_NAME = "indobenchmark/indobert-base-p2"
-NUM_CLASSES     = 3
-NGRAM_SIZES     = [1, 2, 3]
-FILTER_SIZE     = 256
-DROPOUT         = 0.5
-ACTIVATION      = "elu"
-CLS_DROPOUT     = 0.1
-DENSE_SIZE      = 256
-MAX_LEN         = 128
+BERT_MODEL_NAME  = "indobenchmark/indobert-base-p2"
+NUM_CLASSES      = 3
+NGRAM_SIZES      = [1, 2, 3]
+FILTER_SIZE      = 256
+DROPOUT          = 0.5
+ACTIVATION       = "elu"
+CLS_DROPOUT      = 0.1
+DENSE_SIZE       = 256
+MAX_LEN          = 128
 
 # Label mapping — identik dengan notebook
-ID2LABEL = {0: "positive", 1: "negative", 2: "neutral"}
-LABEL2ID = {"positive": 0, "negative": 1, "neutral": 2}
+ID2LABEL    = {0: "positive", 1: "negative", 2: "neutral"}
+LABEL2ID    = {"positive": 0, "negative": 1, "neutral": 2}
 LABEL_NAMES = ["positive", "negative", "neutral"]
 
-# Path model checkpoint
-MODEL_PATH = os.path.join(ROOT, "model", "indobert_cnn_dualpath_S2.pt")
+# Path
+MODEL_PATH      = os.path.join(ROOT, "model", "indobert_cnn_dualpath_S2.pt")
+TOKENIZER_CACHE = os.path.join(ROOT, "model", "tokenizer_cache")
 
 
 def get_device():
@@ -47,11 +52,28 @@ def get_device():
     return torch.device("cpu")
 
 
+def _load_tokenizer():
+    """
+    Load tokenizer dari cache lokal jika ada,
+    otherwise download dari HuggingFace lalu simpan lokal.
+    Ini menghilangkan network call saat cold start berikutnya.
+    """
+    if os.path.isdir(TOKENIZER_CACHE) and os.listdir(TOKENIZER_CACHE):
+        # Load dari disk — jauh lebih cepat
+        return AutoTokenizer.from_pretrained(TOKENIZER_CACHE, local_files_only=True)
+    else:
+        # Download sekali, simpan lokal
+        os.makedirs(TOKENIZER_CACHE, exist_ok=True)
+        tokenizer = AutoTokenizer.from_pretrained(BERT_MODEL_NAME)
+        tokenizer.save_pretrained(TOKENIZER_CACHE)
+        return tokenizer
+
+
 @st.cache_resource(show_spinner=False)
 def load_model_and_tokenizer():
     """
     Load model IndoBERTCNN dan tokenizer.
-    Di-cache oleh Streamlit — hanya dijalankan sekali per sesi.
+    Di-cache oleh Streamlit — hanya dijalankan sekali per sesi app.
     Mengembalikan (model, tokenizer, device) atau raise Exception jika gagal.
     """
     if not os.path.exists(MODEL_PATH):
@@ -62,8 +84,8 @@ def load_model_and_tokenizer():
 
     device = get_device()
 
-    # Load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(BERT_MODEL_NAME)
+    # Load tokenizer (dari cache lokal jika sudah pernah run)
+    tokenizer = _load_tokenizer()
 
     # Bangun arsitektur model
     model = IndoBERTCNN(
@@ -77,13 +99,37 @@ def load_model_and_tokenizer():
         dense_size=DENSE_SIZE,
     )
 
-    # Load weights
-    state_dict = torch.load(MODEL_PATH, map_location="cpu", weights_only=True)
+    # Load weights dari .pt — map ke CPU dulu, biarkan get_device() handle device
+    # PyTorch 2.6+ default weights_only=True menolak unpickle beberapa tipe numpy
+    # (numpy scalar, numpy.dtype, dst.) yang ada di checkpoint ini. Karena file
+    # ini adalah checkpoint hasil training sendiri (trusted), aman pakai weights_only=False.
+    checkpoint = torch.load(MODEL_PATH, map_location="cpu", weights_only=False)
+    state_dict = checkpoint["model_state_dict"] if "model_state_dict" in checkpoint else checkpoint
     model.load_state_dict(state_dict)
     model.to(device)
     model.eval()
 
+    # Warm-up: satu forward pass dummy agar MPS/CPU graph sudah terkompilasi
+    _warmup(model, tokenizer, device)
+
     return model, tokenizer, device
+
+
+def _warmup(model, tokenizer, device):
+    """
+    Satu forward pass dengan input dummy.
+    Ini memaksa PyTorch mengompilasi graph lebih awal
+    sehingga prediksi pertama pengguna tidak terasa lambat.
+    """
+    dummy = tokenizer(
+        "tes",
+        max_length=MAX_LEN,
+        padding="max_length",
+        truncation=True,
+        return_tensors="pt",
+    )
+    with torch.no_grad():
+        model(dummy["input_ids"].to(device), dummy["attention_mask"].to(device))
 
 
 def predict_single(text: str, model, tokenizer, device) -> dict:
@@ -94,7 +140,7 @@ def predict_single(text: str, model, tokenizer, device) -> dict:
         {
             "label": str,           # "positive" / "negative" / "neutral"
             "label_id": int,        # 0 / 1 / 2
-            "confidence": float,    # 0.0–1.0
+            "confidence": float,    # 0.0-1.0
             "probs": list[float],   # [prob_pos, prob_neg, prob_neu]
         }
     """
@@ -124,26 +170,20 @@ def predict_single(text: str, model, tokenizer, device) -> dict:
         "label":      ID2LABEL[label_id],
         "label_id":   label_id,
         "confidence": confidence,
-        "probs":      probs.tolist(),   # [prob_pos, prob_neg, prob_neu]
+        "probs":      probs.tolist(),
     }
 
 
 def predict_batch(texts: list, model, tokenizer, device, progress_callback=None) -> list:
     """
     Prediksi sentimen untuk list teks.
-    progress_callback(i, total) dipanggil setiap iterasi — untuk progress bar Streamlit.
-
-    Returns:
-        list of dict (sama format dengan predict_single)
+    progress_callback(i, total) dipanggil setiap iterasi.
     """
     results = []
-    total   = len(texts)
-
     for i, text in enumerate(texts):
         try:
             result = predict_single(str(text), model, tokenizer, device)
         except Exception:
-            # Jika satu baris gagal, isi dengan nilai default
             result = {
                 "label":      "neutral",
                 "label_id":   2,
@@ -151,8 +191,6 @@ def predict_batch(texts: list, model, tokenizer, device, progress_callback=None)
                 "probs":      [0.0, 0.0, 1.0],
             }
         results.append(result)
-
         if progress_callback:
-            progress_callback(i + 1, total)
-
+            progress_callback(i + 1, len(texts))
     return results
