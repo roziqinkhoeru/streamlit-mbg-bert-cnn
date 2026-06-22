@@ -1,2 +1,134 @@
-*.pt
-*.pkl
+# ══════════════════════════════════════════════════════════════════
+#  .gitignore — MBG Sentiment Analysis Demo
+#  Streamlit + PyTorch + HuggingFace · macOS · Python
+# ══════════════════════════════════════════════════════════════════
+
+
+# ── MODEL FILES (JANGAN PERNAH DI-COMMIT) ──────────────────────
+# File .pt bisa ratusan MB — GitHub limit 100MB per file
+model/*.pt
+model/*.pth
+model/*.bin
+model/*.safetensors
+model/*.ckpt
+
+# HuggingFace cache (auto-download saat pertama run)
+.cache/
+~/.cache/huggingface/
+
+
+# ── PYTHON ──────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+venv/
+env/
+.env/
+.venv/
+ENV/
+
+# Egg / dist
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# mypy / type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+
+# ── ENVIRONMENT VARIABLES (RAHASIA) ─────────────────────────────
+.env
+.env.local
+.env.*.local
+secrets.toml
+# CATATAN: .streamlit/secrets.toml juga jangan di-commit
+.streamlit/secrets.toml
+
+
+# ── DATA & OUTPUT (BISA BESAR / SENSITIF) ───────────────────────
+# Data tweet mentah — bisa mengandung data pribadi
+data/
+datasets/
+*.csv
+*.json
+*.jsonl
+*.parquet
+*.feather
+
+# Kecuali file sample yang memang sengaja disertakan
+!assets/sample_data.csv
+
+# Hasil prediksi
+output/
+outputs/
+hasil_prediksi_*.csv
+test_predictions.csv
+
+# Log training
+*.log
+logs/
+
+
+# ── JUPYTER / KAGGLE NOTEBOOK ───────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+
+# ── macos ───────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V8
+.Trashes
+ehthumbs.db
+Thumbs.db
+.AppleDouble
+.LSOverride
+Icon
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+
+# ── IDE / EDITOR ────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+
+# ── STREAMLIT RUNTIME ───────────────────────────────────────────
+# File cache runtime Streamlit (bukan config)
+.streamlit/cache/
+# JANGAN ignore .streamlit/config.toml — itu perlu di-commit
