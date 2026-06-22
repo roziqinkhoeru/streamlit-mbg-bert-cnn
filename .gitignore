@@ -5,16 +5,22 @@
 
 
 # ── MODEL FILES (JANGAN PERNAH DI-COMMIT) ──────────────────────
-# File .pt bisa ratusan MB — GitHub limit 100MB per file
+# File weights bisa ratusan MB — GitHub limit 100MB per file
 model/*.pt
 model/*.pth
-model/*.bin
 model/*.safetensors
 model/*.ckpt
 
-# HuggingFace cache (auto-download saat pertama run)
+# ── TOKENIZER CACHE (PERLU DI-COMMIT) ───────────────────────────
+# File-file ini kecil (~1-2MB total) dan memungkinkan app berjalan
+# tanpa internet. Jangan di-ignore.
+# model/tokenizer_cache/vocab.txt               <- di-commit
+# model/tokenizer_cache/tokenizer.json          <- di-commit
+# model/tokenizer_cache/tokenizer_config.json   <- di-commit
+# model/tokenizer_cache/special_tokens_map.json <- di-commit
+
+# HuggingFace system cache (bukan bagian project, ada di ~/.cache)
 .cache/
-~/.cache/huggingface/
 
 
 # ── PYTHON ──────────────────────────────────────────────────────
@@ -80,8 +86,10 @@ datasets/
 *.parquet
 *.feather
 
-# Kecuali file sample yang memang sengaja disertakan
+# Kecuali file sample dan tokenizer cache yang sengaja disertakan
 !assets/sample_data.csv
+!model/tokenizer_cache/*.json
+!model/tokenizer_cache/*.txt
 
 # Hasil prediksi
 output/
@@ -132,3 +140,5 @@ Icon
 # File cache runtime Streamlit (bukan config)
 .streamlit/cache/
 # JANGAN ignore .streamlit/config.toml — itu perlu di-commit
+
+# (tokenizer_cache sengaja di-commit — lihat keterangan di atas)
