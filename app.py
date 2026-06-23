@@ -13,21 +13,17 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-import sys, os
+import os
+import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from utils.styles import inject_css, section_header
-from utils.predictor import load_model_and_tokenizer
+from utils.styles import inject_css
+from pages import dashboard, prediksi, tentang
 
 # ── Inject CSS global ─────────────────────────────────────────────────────────
 inject_css()
 
-# ── Load model sekali di awal sesi ───────────────────────────────────────────
-@st.cache_resource(show_spinner=False)
-def get_model():
-    return load_model_and_tokenizer()
-
-# ── Sidebar ───────────────────────────────────────────────────────────────────
+# ── Sidebar — branding (tampil di atas menu navigasi) ────────────────────────
 with st.sidebar:
     st.markdown(
         """
@@ -44,16 +40,22 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    page = st.radio(
-        "Navigasi",
-        ["🏠  Dashboard", "🔍  Prediksi Sentimen", "ℹ️  Tentang"],
-        label_visibility="collapsed",
-    )
+# ── Navigasi native Streamlit ─────────────────────────────────────────────────
+# Menggunakan st.navigation() agar Streamlit tidak lagi auto-generate menu
+# dari folder pages/ secara terpisah (yang menyebabkan sidebar terduplikasi).
+pg = st.navigation(
+    [
+        st.Page(dashboard.render, title="Dashboard", icon="🏠", url_path="dashboard", default=True),
+        st.Page(prediksi.render, title="Prediksi Sentimen", icon="🔍", url_path="prediksi"),
+        st.Page(tentang.render, title="Tentang", icon="ℹ️", url_path="tentang"),
+    ]
+)
 
-    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+# ── Sidebar — footer info (tampil di bawah menu navigasi) ────────────────────
+with st.sidebar:
     st.markdown(
         """
-        <hr style="border:none; border-top:1px solid #252842; margin:0 0 1rem 0;">
+        <hr style="border:none; border-top:1px solid #252842; margin:1rem 0 1rem 0;">
         <div style="font-size:0.72rem; color:#5A5C78; line-height:1.8;">
             <div>Model: IndoBERT-CNN Dual-Path</div>
             <div>Kondisi: S2 (Random Undersampling)</div>
@@ -67,13 +69,4 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-# ── Routing halaman ───────────────────────────────────────────────────────────
-if "Dashboard" in page:
-    from pages.dashboard import render
-    render()
-elif "Prediksi" in page:
-    from pages.prediksi import render
-    render()
-elif "Tentang" in page:
-    from pages.tentang import render
-    render()
+pg.run()
