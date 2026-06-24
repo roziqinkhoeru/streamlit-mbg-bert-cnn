@@ -30,15 +30,20 @@ GLOBAL_CSS = """
     --text-muted:     #5A5C78;
     --font-main:      'Inter', sans-serif;
     --font-mono:      'JetBrains Mono', monospace;
-    --radius:         12px;
-    --radius-sm:      8px;
-    --shadow:         0 4px 24px rgba(0,0,0,0.4);
-    --shadow-glow:    0 0 32px rgba(108, 99, 255, 0.2);
+    --radius:         10px;
+    --radius-sm:      6px;
 }
 
 /* ── Base Reset ──────────────────────────────────────── */
 *, html, body {
     font-family: var(--font-main) !important;
+}
+
+/* Material icon glyphs (sidebar toggle, alert icons, dst.) butuh font
+   ligature khusus — kalau ikut ditimpa rule di atas, render jadi teks
+   mentah (misal "keyboard_double_arrow_right") bukan simbol. */
+[data-testid="stIconMaterial"] {
+    font-family: 'Material Symbols Rounded' !important;
 }
 
 .main .block-container {
@@ -47,9 +52,10 @@ GLOBAL_CSS = """
     max-width: 1100px !important;
 }
 
-/* ── Hide Streamlit default branding ────────────────── */
-#MainMenu, footer, header { visibility: hidden; }
+/* ── Hide Streamlit branding, keep header (sidebar toggle lives there) ── */
+#MainMenu, footer { visibility: hidden; }
 .stDeployButton { display: none; }
+[data-testid="stHeader"] { background: transparent; }
 
 /* ── Sidebar ─────────────────────────────────────────── */
 [data-testid="stSidebar"] {
@@ -65,22 +71,13 @@ GLOBAL_CSS = """
 .metric-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
+    border-left: 2px solid var(--purple);
     border-radius: var(--radius);
     padding: 1.25rem 1.5rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    position: relative;
-    overflow: hidden;
-}
-.metric-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--purple), var(--purple-light));
+    transition: border-color 0.15s;
 }
 .metric-card:hover {
     border-color: var(--border-accent);
-    box-shadow: var(--shadow-glow);
 }
 .metric-label {
     font-size: 0.72rem;
@@ -138,6 +135,26 @@ GLOBAL_CSS = """
 .badge-positive { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
 .badge-negative { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red);   }
 .badge-neutral  { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+
+/* ── Result Stat (kategori sentimen / confidence) ───────── */
+.result-stat-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.3rem;
+}
+.result-stat-value {
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+.result-prob-box {
+    background: var(--purple-dim);
+    border: 1px solid rgba(108,99,255,0.3);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem 0.25rem 1.25rem;
+    margin-top: 1.25rem;
+}
 
 /* ── Result Container ────────────────────────────────── */
 .result-container {
@@ -233,21 +250,12 @@ GLOBAL_CSS = """
 
 /* ── Hero Banner ─────────────────────────────────────── */
 .hero-banner {
-    background: linear-gradient(135deg, #141627 0%, #1a1040 50%, #0f1628 100%);
+    background: var(--bg-card);
     border: 1px solid var(--border);
+    border-left: 3px solid var(--purple);
     border-radius: var(--radius);
-    padding: 2.5rem 2rem;
+    padding: 2rem;
     margin-bottom: 2rem;
-    position: relative;
-    overflow: hidden;
-}
-.hero-banner::after {
-    content: '';
-    position: absolute;
-    top: -50%; right: -20%;
-    width: 400px; height: 400px;
-    background: radial-gradient(circle, rgba(108,99,255,0.12) 0%, transparent 70%);
-    pointer-events: none;
 }
 .hero-title {
     font-size: 1.6rem;
@@ -306,18 +314,17 @@ GLOBAL_CSS = """
     box-shadow: 0 0 0 2px var(--purple-dim) !important;
 }
 .stButton > button {
-    background: linear-gradient(135deg, var(--purple), #8B5CF6) !important;
+    background: var(--purple) !important;
     color: white !important;
     border: none !important;
     border-radius: var(--radius-sm) !important;
     font-weight: 600 !important;
     font-family: var(--font-main) !important;
     padding: 0.6rem 1.5rem !important;
-    transition: opacity 0.2s, box-shadow 0.2s !important;
+    transition: background 0.15s !important;
 }
 .stButton > button:hover {
-    opacity: 0.9 !important;
-    box-shadow: 0 4px 16px rgba(108,99,255,0.4) !important;
+    background: var(--purple-light) !important;
 }
 .stSelectbox [data-baseweb="select"] {
     background: var(--bg-card) !important;
@@ -390,58 +397,49 @@ def section_header(title: str, icon: str = ""):
 
 
 def render_result_card(result: dict, text: str = ""):
-    """Render kartu hasil prediksi sentimen."""
+    """Render kartu hasil prediksi sentimen dengan breakdown probabilitas per kelas."""
     import streamlit as st
 
     label      = result["label"]
     confidence = result["confidence"]
     probs      = result["probs"]
 
-    emoji_map = {"positive": "😊", "negative": "😞", "neutral": "😐"}
+    emoji_map    = {"positive": "😊", "negative": "😞", "neutral": "😐"}
     label_id_map = {"positive": "Positif", "negative": "Negatif", "neutral": "Netral"}
-    emoji  = emoji_map[label]
-    label_id = label_id_map[label]
+    colors       = {"positive": "#10B981", "negative": "#EF4444", "neutral": "#F59E0B"}
+
+    rows = ""
+    for key, prob in zip(["positive", "negative", "neutral"], probs):
+        pct = prob * 100
+        rows += f"""
+        <div class="f1-row">
+            <span class="f1-class">{emoji_map[key]} {label_id_map[key]}</span>
+            <div class="f1-bar-wrap">
+                <div class="f1-bar" style="width:{pct}%; background:{colors[key]};"></div>
+            </div>
+            <span class="f1-score" style="color:{colors[key]};">{pct:.1f}%</span>
+        </div>
+        """
 
     st.markdown(
         f"""
         <div class="result-container {label}">
-            <div style="margin-bottom:1rem;">
-                <span class="result-badge badge-{label}">{emoji} {label_id}</span>
+            <div style="display:flex; gap:2rem; margin-bottom:0.5rem;">
+                <div style="flex:1;">
+                    <div class="result-stat-label">Kategori Sentimen</div>
+                    <div class="result-stat-value" style="color:{colors[label]};">
+                        {label_id_map[label]} {emoji_map[label]}
+                    </div>
+                </div>
+                <div style="flex:1;">
+                    <div class="result-stat-label">Confidence Score</div>
+                    <div class="result-stat-value">{confidence*100:.1f}%</div>
+                </div>
             </div>
-            <div class="confidence-row">
-                <span class="confidence-label">Confidence</span>
-                <span class="confidence-value">{confidence*100:.1f}%</span>
+            <div class="result-prob-box">
+                {rows}
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-    # Probability bar chart via Plotly
-    import plotly.graph_objects as go
-    label_names = ["Positif", "Negatif", "Netral"]
-    colors      = ["#10B981", "#EF4444", "#F59E0B"]
-    fig = go.Figure(go.Bar(
-        x=label_names,
-        y=[p * 100 for p in probs],
-        marker_color=colors,
-        marker_line_width=0,
-        text=[f"{p*100:.1f}%" for p in probs],
-        textposition="outside",
-        textfont=dict(color="#E8E9F3", size=12, family="JetBrains Mono"),
-    ))
-    fig.update_layout(
-        plot_bgcolor="#141627",
-        paper_bgcolor="#141627",
-        font=dict(color="#9899B0", family="Inter"),
-        yaxis=dict(
-            range=[0, 110], showgrid=True,
-            gridcolor="#252842", gridwidth=1,
-            ticksuffix="%", tickfont=dict(size=11),
-        ),
-        xaxis=dict(showgrid=False, tickfont=dict(size=12, color="#E8E9F3")),
-        margin=dict(t=20, b=10, l=10, r=10),
-        height=240,
-        showlegend=False,
-    )
-    st.plotly_chart(fig, use_container_width=True)

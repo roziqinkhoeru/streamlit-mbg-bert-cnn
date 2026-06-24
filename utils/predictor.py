@@ -21,6 +21,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from model.model_def import IndoBERTCNN
+from utils.preprocessing import preprocess
 
 # ── Konfigurasi model (harus identik dengan saat training) ───────────────────
 BERT_MODEL_NAME  = "indobenchmark/indobert-base-p2"
@@ -148,8 +149,17 @@ def predict_single(text: str, model, tokenizer, device) -> dict:
     if not text:
         raise ValueError("Teks tidak boleh kosong.")
 
+    # ── Preprocessing identik dengan pipeline training NB02 ───────────────────
+    # Model dilatih dengan kolom text_bert (BUKAN full_text).
+    # Wajib preprocessing sebelum tokenisasi agar tidak ada train-serve skew.
+    text_bert = preprocess(text)
+
+    # Fallback: jika hasil preprocessing terlalu pendek, gunakan teks bersih minimal
+    if len(text_bert.split()) < 2:
+        text_bert = text
+
     encoding = tokenizer(
-        text,
+        text_bert,
         max_length=MAX_LEN,
         padding="max_length",
         truncation=True,
