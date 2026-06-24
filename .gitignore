@@ -86,8 +86,10 @@ datasets/
 *.parquet
 *.feather
 
-# Kecuali file sample dan tokenizer cache yang sengaja disertakan
+# Kecuali file sample, kamus preprocessing, dan tokenizer cache yang sengaja disertakan
 !assets/sample_data.csv
+!assets/kamus/
+!assets/kamus/*.csv
 !model/tokenizer_cache/*.json
 !model/tokenizer_cache/*.txt
 
