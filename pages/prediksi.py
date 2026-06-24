@@ -203,28 +203,15 @@ def render():
                 df_process = df.head(max_rows).copy()
                 texts = df_process[text_col].fillna("").astype(str).tolist()
 
-                # Progress bar
-                progress_bar = st.progress(0)
-                status_text  = st.empty()
-
-                from utils.predictor import predict_single
-                results = []
-                for i, text in enumerate(texts):
-                    try:
-                        r = predict_single(text, model, tokenizer, device)
-                    except Exception:
-                        r = {"label": "neutral", "label_id": 2, "confidence": 0.0, "probs": [0.0, 0.0, 1.0]}
-                    results.append(r)
-
-                    pct = (i + 1) / len(texts)
-                    progress_bar.progress(pct)
-                    status_text.markdown(
-                        f"<span style='font-size:0.8rem;color:#9899B0;'>Memproses baris {i+1}/{len(texts)}...</span>",
-                        unsafe_allow_html=True,
-                    )
-
-                progress_bar.empty()
-                status_text.empty()
+                with st.spinner(f"Menganalisis sentimen {len(texts)} baris..."):
+                    from utils.predictor import predict_single
+                    results = []
+                    for text in texts:
+                        try:
+                            r = predict_single(text, model, tokenizer, device)
+                        except Exception:
+                            r = {"label": "neutral", "label_id": 2, "confidence": 0.0, "probs": [0.0, 0.0, 1.0]}
+                        results.append(r)
 
                 # Tambahkan kolom hasil ke dataframe
                 label_id_map = {"positive": "Positif", "negative": "Negatif", "neutral": "Netral"}
@@ -321,20 +308,17 @@ def render():
             predict_sample_btn = st.button("Prediksi Sample Data", key="btn_predict_sample", type="primary")
 
         if predict_sample_btn:
-            from utils.predictor import predict_single
             texts = df_sample["full_text"].fillna("").astype(str).tolist()
-            results = []
 
-            progress_bar = st.progress(0)
-            for i, text in enumerate(texts):
-                try:
-                    r = predict_single(text, model, tokenizer, device)
-                except Exception:
-                    r = {"label": "neutral", "label_id": 2, "confidence": 0.0, "probs": [0.0, 0.0, 1.0]}
-                results.append(r)
-                progress_bar.progress((i + 1) / len(texts))
-
-            progress_bar.empty()
+            with st.spinner(f"Menganalisis sentimen {len(texts)} tweet sample..."):
+                from utils.predictor import predict_single
+                results = []
+                for text in texts:
+                    try:
+                        r = predict_single(text, model, tokenizer, device)
+                    except Exception:
+                        r = {"label": "neutral", "label_id": 2, "confidence": 0.0, "probs": [0.0, 0.0, 1.0]}
+                    results.append(r)
 
             label_id_map = {"positive": "Positif", "negative": "Negatif", "neutral": "Netral"}
             df_sample["sentimen"]    = [r["label"] for r in results]
