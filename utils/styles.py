@@ -165,10 +165,6 @@ GLOBAL_CSS = """
     margin: 1rem 0;
     position: relative;
 }
-.result-container.positive { border-left: 3px solid var(--green); }
-.result-container.negative { border-left: 3px solid var(--red);   }
-.result-container.neutral  { border-left: 3px solid var(--amber); }
-
 .confidence-row {
     display: flex;
     align-items: center;
@@ -408,38 +404,31 @@ def render_result_card(result: dict, text: str = ""):
     label_id_map = {"positive": "Positif", "negative": "Negatif", "neutral": "Netral"}
     colors       = {"positive": "#10B981", "negative": "#EF4444", "neutral": "#F59E0B"}
 
-    rows = ""
-    for key, prob in zip(["positive", "negative", "neutral"], probs):
-        pct = prob * 100
-        rows += f"""
-        <div class="f1-row">
-            <span class="f1-class">{emoji_map[key]} {label_id_map[key]}</span>
-            <div class="f1-bar-wrap">
-                <div class="f1-bar" style="width:{pct}%; background:{colors[key]};"></div>
-            </div>
-            <span class="f1-score" style="color:{colors[key]};">{pct:.1f}%</span>
-        </div>
-        """
-
-    st.markdown(
-        f"""
-        <div class="result-container {label}">
-            <div style="display:flex; gap:2rem; margin-bottom:0.5rem;">
-                <div style="flex:1;">
-                    <div class="result-stat-label">Kategori Sentimen</div>
-                    <div class="result-stat-value" style="color:{colors[label]};">
-                        {label_id_map[label]} {emoji_map[label]}
-                    </div>
-                </div>
-                <div style="flex:1;">
-                    <div class="result-stat-label">Confidence Score</div>
-                    <div class="result-stat-value">{confidence*100:.1f}%</div>
-                </div>
-            </div>
-            <div class="result-prob-box">
-                {rows}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    # HTML dibangun flush-left tanpa indentasi/baris kosong — markdown parser
+    # Streamlit bisa salah mengartikan HTML berindentasi sebagai code block,
+    # yang menyebabkan tag penutup seperti "</div>" malah ter-render sebagai teks.
+    rows = "".join(
+        f'<div class="f1-row">'
+        f'<span class="f1-class">{emoji_map[key]} {label_id_map[key]}</span>'
+        f'<div class="f1-bar-wrap"><div class="f1-bar" style="width:{prob*100:.1f}%; background:{colors[key]};"></div></div>'
+        f'<span class="f1-score" style="color:{colors[key]};">{prob*100:.1f}%</span>'
+        f'</div>'
+        for key, prob in zip(["positive", "negative", "neutral"], probs)
     )
+
+    html = (
+        f'<div class="result-container {label}">'
+        f'<div style="display:flex; gap:2rem; margin-bottom:0.5rem;">'
+        f'<div style="flex:1;">'
+        f'<div class="result-stat-label">Kategori Sentimen</div>'
+        f'<div class="result-stat-value" style="color:{colors[label]};">{label_id_map[label]} {emoji_map[label]}</div>'
+        f'</div>'
+        f'<div style="flex:1;">'
+        f'<div class="result-stat-label">Confidence Score</div>'
+        f'<div class="result-stat-value">{confidence*100:.1f}%</div>'
+        f'</div>'
+        f'</div>'
+        f'<div class="result-prob-box">{rows}</div>'
+        f'</div>'
+    )
+    st.markdown(html, unsafe_allow_html=True)
