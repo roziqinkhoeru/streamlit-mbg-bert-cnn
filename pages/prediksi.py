@@ -62,23 +62,25 @@ def render():
     with tab_text:
         st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
 
-        teks_input = st.text_area(
-            "Teks tweet",
-            height=140,
-            max_chars=512,
-            placeholder="Ketik atau paste tweet tentang Program Makan Bergizi Gratis (MBG) di sini...",
-            key="teks_input_area",
-        )
-
-        col_btn, col_count = st.columns([1, 5])
-        with col_btn:
-            analyze_btn = st.button("Analisis", key="btn_analyze", type="primary", use_container_width=True)
-        with col_count:
-            st.markdown(
-                f"<div style='display:flex; align-items:center; height:100%;'>"
-                f"<span style='font-size:0.78rem; color:#5A5C78;'>{len(teks_input)}/512 karakter</span></div>",
-                unsafe_allow_html=True,
+        with st.container(border=True):
+            teks_input = st.text_area(
+                "Teks tweet",
+                height=140,
+                max_chars=512,
+                placeholder="Ketik atau paste tweet tentang Program Makan Bergizi Gratis (MBG) di sini...",
+                key="teks_input_area",
+                label_visibility="collapsed",
             )
+
+            col_btn, col_count = st.columns([1, 5])
+            with col_btn:
+                analyze_btn = st.button("Analisis", key="btn_analyze", type="primary", use_container_width=True)
+            with col_count:
+                st.markdown(
+                    f"<div style='display:flex; align-items:center; height:100%;'>"
+                    f"<span style='font-size:0.78rem; color:#5A5C78;'>{len(teks_input)}/512 karakter</span></div>",
+                    unsafe_allow_html=True,
+                )
 
         if analyze_btn:
             if not teks_input.strip():
@@ -125,21 +127,22 @@ def render():
     with tab_csv:
         st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
 
-        st.markdown(
-            """<div style="font-size:0.82rem; color:#9899B0; margin-bottom:1rem; line-height:1.6;">
-            Upload file CSV hasil tweet-harvest atau format lain.
-            Kolom yang diperlukan: kolom teks tweet (biasanya <code style="color:#6C63FF;">full_text</code>).
-            Kolom lain akan tetap disertakan dalam hasil.
-            </div>""",
-            unsafe_allow_html=True,
-        )
+        with st.container(border=True):
+            st.markdown(
+                """<div style="font-size:0.82rem; color:#9899B0; margin-bottom:0.75rem; line-height:1.6;">
+                Upload file CSV hasil tweet-harvest atau format lain.
+                Kolom yang diperlukan: kolom teks tweet (biasanya <code style="color:#6C63FF;">full_text</code>).
+                Kolom lain akan tetap disertakan dalam hasil.
+                </div>""",
+                unsafe_allow_html=True,
+            )
 
-        uploaded_file = st.file_uploader(
-            "Pilih file CSV",
-            type=["csv"],
-            key="csv_uploader",
-            label_visibility="collapsed",
-        )
+            uploaded_file = st.file_uploader(
+                "Pilih file CSV",
+                type=["csv"],
+                key="csv_uploader",
+                label_visibility="collapsed",
+            )
 
         if uploaded_file is not None:
             # Validasi ukuran (maks 10MB)
@@ -312,10 +315,12 @@ def render():
 
         # Load sample data dari string konstanta
         df_sample = pd.read_csv(io.StringIO(SAMPLE_DATA_CSV))
-        st.caption(f"{len(df_sample)} tweet sample siap digunakan.")
-        st.dataframe(df_sample[["full_text"]], use_container_width=True)
+        with st.container(border=True):
+            st.caption(f"{len(df_sample)} tweet sample siap digunakan.")
+            st.dataframe(df_sample[["full_text"]], use_container_width=True)
+            predict_sample_btn = st.button("Prediksi Sample Data", key="btn_predict_sample", type="primary")
 
-        if st.button("Prediksi Sample Data", key="btn_predict_sample", type="primary"):
+        if predict_sample_btn:
             from utils.predictor import predict_single
             texts = df_sample["full_text"].fillna("").astype(str).tolist()
             results = []

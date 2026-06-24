@@ -33,43 +33,63 @@ def render():
         unsafe_allow_html=True,
     )
 
+    # ── Highlight Strip — ringkasan cepat untuk pembaca yang scroll sekilas ────
+    h1, h2, h3, h4 = st.columns(4)
+    for col, label, value in [
+        (h1, "Accuracy", "85.70%"),
+        (h2, "F1-Macro", "0.8547"),
+        (h3, "Dataset", "6.642 tweet"),
+        (h4, "Kelas", "3 (Pos/Neg/Netral)"),
+    ]:
+        with col:
+            st.markdown(
+                f"""<div class="metric-card" style="text-align:center; padding:0.9rem 0.5rem;">
+                    <div class="metric-label">{label}</div>
+                    <div class="metric-value metric-accent" style="font-size:1.5rem;">{value}</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
+
     # ── Profil & Abstrak ──────────────────────────────────────────────────────
     col_profil, col_abstrak = st.columns([1, 1.8])
 
     with col_profil:
         section_header("Peneliti", "👤")
-        info_items = {
-            "Nama": "Khoeru Roziqin",
-            "Program Studi": "Informatika",
-            "Jenjang": "Strata 1 (S1)",
-            "Tahun": "2026",
-            "Topik": "Sentiment Analysis · NLP · Deep Learning",
-        }
-        for k, v in info_items.items():
+        with st.container(border=True):
+            info_items = {
+                "Nama": "Khoeru Roziqin",
+                "Program Studi": "Informatika",
+                "Jenjang": "Strata 1 (S1)",
+                "Tahun": "2026",
+                "Topik": "Sentiment Analysis · NLP · Deep Learning",
+            }
+            for k, v in info_items.items():
+                st.markdown(
+                    f"""
+                    <div style="padding:0.4rem 0; border-bottom:1px solid #252842;">
+                        <div style="font-size:0.68rem; color:#5A5C78; text-transform:uppercase;
+                                    letter-spacing:0.06em; margin-bottom:0.15rem;">{k}</div>
+                        <div style="font-size:0.88rem; color:#E8E9F3; font-weight:500;">{v}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
             st.markdown(
-                f"""
-                <div style="padding:0.5rem 0; border-bottom:1px solid #252842;">
-                    <div style="font-size:0.68rem; color:#5A5C78; text-transform:uppercase;
-                                letter-spacing:0.06em; margin-bottom:0.15rem;">{k}</div>
-                    <div style="font-size:0.88rem; color:#E8E9F3; font-weight:500;">{v}</div>
+                """
+                <div style="font-size:0.68rem; color:#5A5C78; text-transform:uppercase;
+                            letter-spacing:0.06em; margin-bottom:0.4rem;">Judul Skripsi</div>
+                <div style="font-size:0.85rem; color:#E8E9F3; line-height:1.6; font-style:italic;
+                            border-left:3px solid #6C63FF; padding-left:0.75rem;">
+                    "Analisis Sentimen Opini Publik di Platform X Mengenai Program Makan Bergizi Gratis
+                    Menggunakan BERT-CNN"
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-
-        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
-        section_header("Judul Skripsi", "📄")
-        st.markdown(
-            """
-            <div style="background:#141627; border:1px solid #252842; border-left:3px solid #6C63FF;
-                        border-radius:8px; padding:1rem; font-size:0.85rem; color:#E8E9F3;
-                        line-height:1.6; font-style:italic;">
-                "Analisis Sentimen Opini Publik di Platform X Mengenai Program Makan Bergizi Gratis
-                Menggunakan BERT-CNN"
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
     with col_abstrak:
         section_header("Abstrak Penelitian", "📝")
