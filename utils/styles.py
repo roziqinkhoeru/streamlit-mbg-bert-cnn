@@ -121,21 +121,6 @@ GLOBAL_CSS = """
     letter-spacing: 0.01em;
 }
 
-/* ── Result Badge ────────────────────────────────────── */
-.result-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1.25rem;
-    border-radius: 100px;
-    font-weight: 700;
-    font-size: 1.1rem;
-    letter-spacing: 0.02em;
-}
-.badge-positive { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
-.badge-negative { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red);   }
-.badge-neutral  { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
-
 /* ── Result Stat (kategori sentimen / confidence) ───────── */
 .result-stat-label {
     font-size: 0.78rem;
@@ -164,25 +149,6 @@ GLOBAL_CSS = """
     padding: 1.75rem;
     margin: 1rem 0;
     position: relative;
-}
-.confidence-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 1rem;
-}
-.confidence-label {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-}
-.confidence-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    font-family: var(--font-mono);
 }
 
 /* ── Info Card ───────────────────────────────────────── */
@@ -392,7 +358,7 @@ def section_header(title: str, icon: str = ""):
     )
 
 
-def render_result_card(result: dict, text: str = ""):
+def render_result_card(result: dict):
     """Render kartu hasil prediksi sentimen dengan breakdown probabilitas per kelas."""
     import streamlit as st
 

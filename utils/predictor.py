@@ -34,10 +34,8 @@ CLS_DROPOUT      = 0.1
 DENSE_SIZE       = 256
 MAX_LEN          = 128
 
-# Label mapping — identik dengan notebook
-ID2LABEL    = {0: "positive", 1: "negative", 2: "neutral"}
-LABEL2ID    = {"positive": 0, "negative": 1, "neutral": 2}
-LABEL_NAMES = ["positive", "negative", "neutral"]
+# Label mapping — identik dengan notebook (urutan HARUS sama dengan training)
+ID2LABEL = {0: "positive", 1: "negative", 2: "neutral"}
 
 # Path
 MODEL_PATH      = os.path.join(ROOT, "model", "indobert_cnn_dualpath_S2.pt")
@@ -182,25 +180,3 @@ def predict_single(text: str, model, tokenizer, device) -> dict:
         "confidence": confidence,
         "probs":      probs.tolist(),
     }
-
-
-def predict_batch(texts: list, model, tokenizer, device, progress_callback=None) -> list:
-    """
-    Prediksi sentimen untuk list teks.
-    progress_callback(i, total) dipanggil setiap iterasi.
-    """
-    results = []
-    for i, text in enumerate(texts):
-        try:
-            result = predict_single(str(text), model, tokenizer, device)
-        except Exception:
-            result = {
-                "label":      "neutral",
-                "label_id":   2,
-                "confidence": 0.0,
-                "probs":      [0.0, 0.0, 1.0],
-            }
-        results.append(result)
-        if progress_callback:
-            progress_callback(i + 1, len(texts))
-    return results
