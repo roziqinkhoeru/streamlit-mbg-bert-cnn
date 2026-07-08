@@ -1,83 +1,116 @@
-# MBG Sentiment Analysis — Demo App
+# SentiMBG - Aplikasi Analisis Sentimen MBG
 
-Aplikasi demo analisis sentimen Program Makan Bergizi Gratis (MBG)
-menggunakan model IndoBERT-CNN Dual-Path.
+Aplikasi web berbasis Streamlit yang mengimplementasikan model IndoBERT-CNN Dual-Path untuk klasifikasi sentimen opini publik pada platform X (Twitter) mengenai **Program Makan Bergizi Gratis (MBG)**. Aplikasi ini menghasilkan klasifikasi tiga kelas: **positif**, **negatif**, dan **netral**.
+
+## Fitur
+
+- **Prediksi Teks Tunggal** - klasifikasi sentimen untuk satu teks yang diketik langsung
+- **Prediksi Batch CSV** - klasifikasi masal dari file CSV (hingga 500 baris)
+- **Prediksi Sample Data** - klasifikasi 10 tweet MBG terkurasi untuk demonstrasi cepat
+- **Live Crawling** - crawling tweet langsung dari platform X berdasarkan keyword dan rentang tanggal
+- **Project Showcase** - halaman informasi lengkap penelitian, arsitektur, dan performa model
 
 ## Struktur Folder
 
 ```
-mbg-sentiment-demo/
-├── app.py
+streamlit-mbg-bert-cnn/
+├── app.py                              # Entry point + st.navigation()
 ├── requirements.txt
+├── README.md
+├── PRD.md
 ├── .streamlit/
 │   └── config.toml
-├── assets/
-│   └── kamus/                        ← kamus preprocessing (slang, emoji, dll.)
 ├── model/
-│   ├── model_def.py
-│   └── indobert_cnn_dualpath_S2.pt   ← LETAKKAN MODEL DI SINI
+│   ├── model_def.py                    # Definisi kelas IndoBERTCNN
+│   ├── indobert_cnn_dualpath_S2.pt     # Checkpoint (unduh terpisah)
+│   └── tokenizer_cache/
 ├── utils/
-│   ├── predictor.py
-│   ├── preprocessing.py
-│   ├── crawler.py                    ← crawling tweet via tweet-harvest (Node.js)
-│   └── styles.py
-└── pages/
-    ├── prediksi.py   (Home — prediksi sentimen)
-    └── tentang.py    (project showcase + about)
+│   ├── predictor.py                    # Load model + inference
+│   ├── preprocessing.py                # Pipeline preprocessing 4 tahap
+│   ├── crawler.py                      # Integrasi tweet-harvest
+│   └── styles.py                       # CSS global + komponen tampilan
+├── pages/
+│   ├── prediksi.py                     # Halaman utama prediksi
+│   └── tentang.py                      # Halaman project showcase
+└── assets/
+    ├── sample_data.csv                 # 10 tweet MBG terkurasi
+    └── kamus/                          # Kamus preprocessing custom
+        ├── kamus_alay_mbg.csv
+        ├── demoji_code_mbg.csv
+        ├── akun_x_mbg.csv
+        ├── whitelist_hashtag_mbg.csv
+        └── additional_stopwords_mbg.csv
 ```
 
-## Setup & Jalankan
+## Prasyarat Sistem
+
+- Python 3.9 atau versi lebih baru
+- RAM minimal 8 GB
+- Ruang penyimpanan kosong 2 GB
+- Akselerator opsional: NVIDIA CUDA atau Apple Silicon MPS
+- Node.js v18+ (untuk fitur Live Crawling)
+
+## Setup dan Instalasi
 
 ```bash
-# 1. Buat virtual environment
-python -m venv venv
-source venv/bin/activate   # Mac/Linux
-# venv\Scripts\activate    # Windows
+# 1. Clone repositori
+git clone https://github.com/roziqinkhoeru/streamlit-mbg-bert-cnn.git
+cd streamlit-mbg-bert-cnn
 
-# 2. Install dependencies
+# 2. Buat dan aktifkan virtual environment
+python -m venv venv
+source venv/bin/activate    # macOS / Linux
+# venv\Scripts\activate     # Windows
+
+# 3. Instalasi dependensi Python
 pip install -r requirements.txt
 
-# 3. Letakkan model di folder model/
-# Salin indobert_cnn_dualpath_S2.pt ke folder model/
+# 4. Unduh model checkpoint
+# File 'indobert_cnn_dualpath_S2.pt' tidak disertakan pada repositori.
+# Unduh dari Google Drive dan letakkan pada folder model/
+# Link: https://bit.ly/codembgbecnn
 
-# 4. Jalankan
+# 5. Jalankan aplikasi
 streamlit run app.py
 ```
 
-### Fitur Crawling (opsional)
+Aplikasi akan terbuka otomatis pada browser di `http://localhost:8501`.
 
-Tab "Crawling (Opsional)" di halaman Home memakai
-[tweet-harvest](https://github.com/helmisatria/tweet-harvest) (Node.js +
-Playwright, tanpa API key berbayar) untuk mengambil tweet langsung dari
-Twitter/X menggunakan `auth_token` (cookie) akun yang sudah login. Ini
-adalah library yang sama dengan yang dipakai di `Fix Crawling MBG.ipynb`
-untuk mengumpulkan dataset penelitian.
+## Fitur Live Crawling
 
-Prasyarat tambahan (di luar `requirements.txt`, karena bukan package Python):
+Tab **Crawling** pada halaman prediksi mengintegrasikan library [`tweet-harvest`](https://github.com/helmisatria/tweet-harvest) berbasis Node.js dan Playwright untuk mengambil tweet secara langsung dari platform X, tanpa memerlukan API key berbayar.
 
-```bash
-# Node.js v18+ harus terpasang di sistem
-node -v   # cek dulu, install dari https://nodejs.org jika belum ada
-```
+**Autentikasi:** Fitur ini menggunakan `auth_token` cookie akun X yang sudah login. Cara mendapatkan token dan detail teknis crawling tersedia pada [artikel resmi tweet-harvest oleh Helmi Satria](https://helmisatria.com/blog/cara-crawl-mendapatkan-data-twitter-dengan-filter-waktu-dan-lainnya).
 
-`npx` akan otomatis mengunduh `tweet-harvest` + browser Chromium (via
-Playwright) saat pertama kali dipanggil. Jika muncul error semacam
-`Target page, context or browser has been closed` atau Chromium crash,
-cache browser Playwright kemungkinan corrupt — perbaiki dengan:
+**Prasyarat tambahan:**
 
 ```bash
-npx -y playwright@1.41.1 install chromium --force
+# Pastikan Node.js v18+ terpasang di sistem
+node -v
 ```
 
-Catatan: fitur ini butuh akses shell untuk menjalankan Node.js & browser
-headless, jadi hanya berjalan di mesin/server yang Anda kendalikan sendiri
-(laptop, VM, dsb.) — tidak akan berjalan di platform Python-only tanpa
-Node.js seperti Streamlit Community Cloud default. Jika tidak tersedia,
-gunakan mode **Sample Data** di tab yang sama.
+Saat pertama kali dipanggil, `npx` akan otomatis mengunduh `tweet-harvest` beserta browser Chromium.
 
-## Model
+## Spesifikasi Model
 
-- File: `model/indobert_cnn_dualpath_S2.pt`
-- Backbone: `indobenchmark/indobert-base-p2`
-- Arsitektur: Dual-Path [CLS] + CNN 1D
-- F1-Macro: 0.8547 | Accuracy: 85.70%
+| Atribut               | Nilai                                            |
+| --------------------- | ------------------------------------------------ |
+| Backbone              | `indobenchmark/indobert-base-p2`                 |
+| Arsitektur            | Dual-Path [CLS] + CNN 1D Multi-Kernel            |
+| Max Sequence Length   | 128 token                                        |
+| Kelas Output          | Positif, Negatif, Netral                         |
+| Accuracy              | 85,70%                                           |
+| F1-Macro              | 0,8547                                           |
+| Per-kelas F1          | Positif 0,889 \| Negatif 0,872 \| Netral 0,803  |
+
+Detail spesifikasi teknis lengkap tersedia pada [`PRD.md`](PRD.md) dan pada halaman **Tentang** di dalam aplikasi.
+
+## Sumber Terkait
+
+- **Kode Penelitian Pipeline (Notebook 00-03)** - [github.com/roziqinkhoeru/mbg_bertn_cnn](https://github.com/roziqinkhoeru/mbg_bertn_cnn)
+- **Repositori Data Lengkap (Google Drive)** - [bit.ly/codembgbecnn](https://bit.ly/codembgbecnn)
+- **Dokumentasi Spesifikasi Produk** - [`PRD.md`](PRD.md)
+
+---
+
+**Departemen Informatika, Fakultas Sains dan Matematika, Universitas Diponegoro.**

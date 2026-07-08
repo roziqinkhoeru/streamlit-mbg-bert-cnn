@@ -1,346 +1,575 @@
-# PRD — MBG Sentiment Analysis Demo App
+# Product Requirements Document (PRD)
+## SentiMBG - Aplikasi Analisis Sentimen Program Makan Bergizi Gratis
 
-**Product Requirements Document & System Review**
-Analisis Sentimen Opini Publik Program Makan Bergizi Gratis (MBG) menggunakan IndoBERT-CNN Dual-Path
-
-| | |
-|---|---|
-| **Versi Dokumen** | 1.0 |
-| **Tanggal** | 2026-06-24 |
-| **Status** | Selesai (artefak demo sidang skripsi) |
-| **Penulis Sistem** | Khoeru Roziqin — Informatika S1 |
-| **Jenis Produk** | Aplikasi web demo (research artifact) untuk sidang skripsi & dokumentasi HKI |
-| **Entry point** | `streamlit run app.py` |
+| Field                | Value                                        |
+| -------------------- | -------------------------------------------- |
+| **Nama Produk**      | SentiMBG                                     |
+| **Jenis**            | Aplikasi Web Analisis Sentimen               |
+| **Versi Dokumen**    | 1.0                                          |
+| **Status**           | Released                                     |
+| **Framework**        | Streamlit                                    |
+| **Bahasa Antarmuka** | Bahasa Indonesia                             |
+| **Repositori**       | github.com/roziqinkhoeru/streamlit-mbg-bert-cnn |
 
 ---
 
 ## 1. Ringkasan Eksekutif
 
-Aplikasi web berbasis **Streamlit** yang mendemonstrasikan model *deep learning* hasil penelitian skripsi:
-klasifikasi sentimen tiga kelas (**Positif / Negatif / Netral**) terhadap opini publik berbahasa Indonesia
-di platform X (Twitter) mengenai program pemerintah **Makan Bergizi Gratis (MBG)**.
+SentiMBG adalah aplikasi web berbasis framework **Streamlit** yang menyediakan analisis sentimen otomatis terhadap opini publik pada platform X (Twitter) mengenai **Program Makan Bergizi Gratis (MBG)**. Aplikasi ini mengimplementasikan model deep learning **IndoBERT-CNN Dual-Path** yang mengklasifikasikan teks berbahasa Indonesia ke dalam tiga kelas sentimen: **positif**, **negatif**, dan **netral**.
 
-Inti sistem adalah model hibrida **IndoBERT-CNN Dual-Path** — menggabungkan representasi konteks global
-(`[CLS]` dari IndoBERT) dengan pola n-gram lokal (CNN 1D multi-kernel). Aplikasi membungkus model ini dalam
-antarmuka interaktif dua halaman: **Home** (prediksi) dan **Tentang** (project showcase).
-
-Aplikasi berfungsi sebagai **bukti fungsional** dan **alat presentasi** untuk sidang skripsi — bukan produk
-komersial. Fokusnya adalah reproduktibilitas hasil penelitian (menghindari *train-serve skew*), kejelasan
-visual, dan kemudahan demonstrasi langsung.
+Aplikasi dirancang untuk mendemonstrasikan hasil penelitian dalam antarmuka interaktif yang dapat digunakan oleh peneliti, penguji akademik, dan pengguna umum untuk mengeksplorasi kapabilitas model pada berbagai skenario input, mulai dari teks tunggal, batch dataset, hingga data live dari platform X.
 
 ---
 
-## 2. Latar Belakang & Tujuan
+## 2. Latar Belakang dan Tujuan
 
-### 2.1 Masalah
+### 2.1 Latar Belakang
 
-Program MBG memicu volume percakapan publik yang besar di media sosial. Menilai sentimen publik secara manual
-tidak *scalable*. Diperlukan sistem klasifikasi otomatis yang:
-- akurat untuk teks informal berbahasa Indonesia (slang, singkatan, emoji),
-- mampu menangkap konteks global sekaligus pola frasa lokal,
-- dapat didemonstrasikan secara langsung dan transparan.
+Program Makan Bergizi Gratis (MBG) merupakan program strategis nasional yang menarik atensi publik secara luas di platform media sosial. Analisis sentimen otomatis terhadap opini publik memberikan wawasan cepat mengenai persepsi masyarakat, respons terhadap implementasi program, dan area yang menjadi fokus diskusi.
+
+Model hasil penelitian tesis berjudul *"Analisis Sentimen Opini Publik di Platform Media Sosial X Mengenai Program Makan Bergizi Gratis Menggunakan BERT-CNN"* perlu disajikan dalam bentuk aplikasi web yang dapat diakses secara interaktif untuk keperluan demonstrasi, verifikasi, dan pemanfaatan lebih lanjut.
 
 ### 2.2 Tujuan Produk
 
-| # | Tujuan | Ukuran Keberhasilan |
-|---|--------|---------------------|
-| G1 | Mendemonstrasikan model hasil penelitian secara *live* | Prediksi teks tunggal < 1 detik setelah warm-up |
-| G2 | Menjamin hasil identik dengan pipeline training | Preprocessing di serving = NB02 (no train-serve skew) |
-| G3 | Menyajikan hasil penelitian secara profesional | Halaman Tentang sebagai project showcase lengkap |
-| G4 | Mendukung input fleksibel | Input manual, batch CSV, dan sample data |
-| G5 | Reprodusibel di mesin lokal | Setup via `requirements.txt` + checkpoint manual |
+- Menyajikan model IndoBERT-CNN Dual-Path hasil penelitian dalam bentuk aplikasi web interaktif.
+- Menyediakan multi-mode input agar pengguna dapat mengeksplorasi model pada berbagai skenario (teks tunggal, batch CSV, sample terkurasi, dan data live crawling).
+- Memberikan project showcase yang menampilkan spesifikasi teknis, metodologi penelitian, dan performa model secara transparan.
+- Menjadi referensi implementasi model NLP berbahasa Indonesia untuk domain analisis sentimen media sosial.
 
-### 2.3 Non-Tujuan (Out of Scope)
+### 2.3 Ruang Lingkup Produk
 
-- **Crawling data live** — sempat dieksplorasi (tweet-harvest / tweety-ns), lalu **dihapus** karena tidak
-  andal di lingkungan free-tier dan menambah dependency non-Python (Node.js + Playwright). Pengumpulan data
-  penelitian dilakukan terpisah via `Fix Crawling MBG.ipynb` (Google Colab).
-- Training / fine-tuning model dari dalam aplikasi.
-- Autentikasi pengguna, multi-tenant, atau persistensi database.
-- Deployment publik berskala (aplikasi ditargetkan untuk demo lokal).
+SentiMBG mencakup ruang lingkup sebagai berikut:
+
+- Klasifikasi sentimen tiga kelas untuk teks berbahasa Indonesia.
+- Domain optimal: konten media sosial (tweet) dengan gaya informal dan konteks Program Makan Bergizi Gratis.
+- Deployment: aplikasi berjalan pada lingkungan lokal pengguna dengan dukungan akselerator opsional (MPS/CUDA).
 
 ---
 
-## 3. Pengguna & Persona
+## 3. Target Pengguna
 
-| Persona | Kebutuhan | Cara Pakai |
-|---------|-----------|------------|
-| **Penguji sidang** | Verifikasi klaim penelitian secara langsung | Ketik contoh tweet → lihat prediksi + confidence |
-| **Peneliti (penulis)** | Presentasi metodologi & hasil | Halaman Tentang + demo interaktif |
-| **Reviewer teknis / dosen** | Menilai arsitektur & metrik | Confusion matrix, F1 per kelas, arsitektur model |
-| **Pengguna umum (opsional)** | Coba klasifikasi teks sendiri | Batch CSV atau sample data |
+| Persona                    | Kebutuhan Utama                                                       | Mode Input Utama                    |
+| -------------------------- | --------------------------------------------------------------------- | ----------------------------------- |
+| **Peneliti / Pengembang**  | Verifikasi model, eksplorasi arsitektur, referensi implementasi       | Batch CSV, Sample, Live Crawling    |
+| **Penguji Akademik**       | Demonstrasi model, verifikasi klaim penelitian, project showcase      | Sample, Teks Tunggal                |
+| **Analis Data / Praktisi** | Analisis batch dataset opini, ekstraksi insight                       | Batch CSV, Live Crawling            |
+| **Pengguna Umum**          | Eksplorasi teknologi analisis sentimen berbahasa Indonesia            | Teks Tunggal, Sample                |
 
 ---
 
-## 4. Arsitektur Sistem
+## 4. Ruang Lingkup Fitur
 
-### 4.1 Diagram Alur Tingkat Tinggi
+### 4.1 Peta Fitur
+
+SentiMBG terdiri dari dua halaman utama dengan fitur berikut:
+
+**Halaman Prediksi Sentimen (Home)**
+1. Prediksi Teks Tunggal (Tab Input Teks)
+2. Prediksi Batch CSV (Tab Upload CSV)
+3. Prediksi Sample Data (Tab Sample Data)
+4. Live Crawling Data (Tab Crawling Opsional)
+
+**Halaman Tentang (Project Showcase)**
+5. Informasi Penelitian dan Metodologi
+6. Visualisasi Performa dan Arsitektur Model
+
+### 4.2 Requirements Fungsional
+
+#### FR-1: Prediksi Teks Tunggal
+
+**Deskripsi:** Pengguna dapat memasukkan satu teks bebas untuk memperoleh klasifikasi sentimen secara instan.
+
+**Detail:**
+- Input berupa text area dengan batas 512 karakter.
+- Output menampilkan kategori sentimen, confidence score, dan probabilitas per kelas dalam bentuk result card.
+- Progress bar visual untuk setiap kelas mempermudah interpretasi hasil.
+
+**Kriteria Sukses:** Prediksi ditampilkan dalam waktu kurang dari 3 detik pada mode CPU dan kurang dari 1 detik pada mode akselerator (MPS/CUDA).
+
+---
+
+#### FR-2: Prediksi Batch CSV
+
+**Deskripsi:** Pengguna dapat mengunggah file CSV berisi kumpulan teks untuk memperoleh prediksi sentimen secara masal.
+
+**Detail:**
+- Format file: CSV dengan ukuran maksimal 10 MB.
+- Sistem melakukan deteksi otomatis kolom teks berdasarkan heuristik nama kolom (misal `text`, `tweet`, `full_text`).
+- Preview 5 baris pertama ditampilkan untuk verifikasi sebelum inference.
+- Pengguna dapat memilih jumlah baris yang diprediksi via slider (rentang 10–500 baris).
+- Output meliputi tabel hasil, chart distribusi kelas, dan tombol unduh CSV hasil prediksi.
+
+**Kriteria Sukses:** Batch 500 baris terproses dalam waktu kurang dari 60 detik pada mode akselerator.
+
+---
+
+#### FR-3: Prediksi Sample Data
+
+**Deskripsi:** Pengguna dapat mendemonstrasikan model dengan cepat menggunakan sample tweet terkurasi tanpa perlu menyediakan data sendiri.
+
+**Detail:**
+- Sepuluh tweet MBG terkurasi disediakan dalam `assets/sample_data.csv`.
+- Prediksi seluruh sample dijalankan dengan satu klik tombol.
+- Output berupa tabel hasil klasifikasi lengkap dengan chart distribusi kelas.
+
+**Kriteria Sukses:** Prediksi seluruh sample selesai dalam waktu kurang dari 5 detik pada mode akselerator.
+
+---
+
+#### FR-4: Live Crawling Data
+
+**Deskripsi:** Pengguna dapat melakukan crawling tweet secara langsung dari platform X untuk dianalisis sentimennya, tanpa memerlukan API key berbayar.
+
+**Detail:**
+- Integrasi dengan library [`tweet-harvest`](https://github.com/helmisatria/tweet-harvest) v2.7.1 berbasis Node.js dan Playwright.
+- Autentikasi menggunakan `auth_token` cookie X yang disediakan pengguna.
+- Parameter crawling: keyword, rentang tanggal (`since`/`until`), bahasa (`lang:id`), dan limit tweet.
+- Hasil crawling otomatis dialirkan ke pipeline prediksi setelah selesai.
+- Kolom teks (`full_text`) langsung digunakan sebagai input untuk klasifikasi sentimen.
+
+**Kriteria Sukses:** Crawling 100 tweet terselesaikan dan hasil prediksi ditampilkan dalam waktu kurang dari 3 menit.
+
+---
+
+#### FR-5: Project Showcase (Halaman Tentang)
+
+**Deskripsi:** Halaman terintegrasi yang menampilkan informasi lengkap penelitian, arsitektur, dan performa model.
+
+**Detail:**
+- Highlight strip metrik utama: Accuracy, F1-Macro, ukuran dataset, jumlah kelas.
+- Profil peneliti, judul skripsi, dan abstrak penelitian.
+- Metrik performa model beserta F1 per kelas.
+- Visualisasi distribusi dataset dan confusion matrix.
+- Diagram arsitektur model beserta tabel hyperparameter.
+- Ringkasan hasil validasi K-Fold Cross-Validation.
+- Informasi dataset, langkah metodologi, referensi utama, dan tech stack.
+
+**Kriteria Sukses:** Konten menampilkan seluruh spesifikasi teknis dan hasil penelitian dalam satu halaman terstruktur.
+
+---
+
+#### FR-6: State Feedback UI
+
+**Deskripsi:** Aplikasi memberikan umpan balik visual yang jelas selama proses eksekusi berlangsung.
+
+**Detail:**
+- Loading state ditampilkan saat model dimuat atau inference dijalankan.
+- Progress indicator untuk operasi batch prediction dan crawling.
+- Pesan status informatif untuk setiap tahap proses.
+- Konfirmasi visual saat operasi selesai (result card, chart, download button).
+
+**Kriteria Sukses:** Setiap operasi asynchronous memiliki indikator visual yang jelas dari mulai hingga selesai.
+
+---
+
+## 5. Alur Pengguna
+
+### 5.1 Alur Prediksi Teks Tunggal
 
 ```
-                    app.py  (st.navigation / st.Page)
-                       │
-        ┌──────────────┴───────────────┐
-   pages/prediksi.py            pages/tentang.py
-   (Home — 3 tab)               (Project showcase)
-        │
-        │ predict_single()
-        ▼
-   utils/predictor.py ──► utils/preprocessing.py  (4-step pipeline, kamus/*.csv)
-        │
-        ▼
-   model/model_def.py  (IndoBERTCNN)  ◄── model/indobert_cnn_dualpath_S2.pt (checkpoint)
-        │
-   utils/styles.py  (CSS global, injected per halaman)
+Pengguna membuka aplikasi
+   → Pilih tab "Input Teks"
+   → Masukkan teks pada text area
+   → Klik "Analisis"
+   → Sistem menjalankan preprocessing → tokenization → inference
+   → Result card ditampilkan (kategori, confidence, probabilitas)
 ```
 
-### 4.2 Modul & Tanggung Jawab
-
-| Modul | Peran | Catatan Arsitektural |
-|-------|-------|----------------------|
-| `app.py` | Entry point, routing, sidebar | Wajib pakai `st.navigation()` — mencegah Streamlit auto-generate nav ganda dari folder `pages/` |
-| `pages/prediksi.py` | Halaman Home: 3 tab prediksi | Tab: Input Teks, Upload CSV, Sample Data |
-| `pages/tentang.py` | Project showcase (metrik, arsitektur, dataset, metodologi, referensi) | Gabungan dari halaman Dashboard + Tentang lama |
-| `utils/predictor.py` | Load model + inference | `@st.cache_resource`, device auto-select, warm-up |
-| `utils/preprocessing.py` | Pipeline 4-langkah (identik NB02) | Kamus slang/emoji/akun; Nasal auto-download & cache |
-| `model/model_def.py` | Definisi `IndoBERTCNN` | Harus identik dengan notebook training |
-| `utils/styles.py` | CSS global dark theme + `render_result_card()` | HTML flush-left untuk hindari bug parser markdown |
-| `.streamlit/config.toml` | Tema & konfigurasi runtime | `toolbarMode=minimal`, tema dark |
-
-### 4.3 Keputusan Arsitektural Kunci (Load-Bearing)
-
-1. **`st.navigation()` bukan folder `pages/` auto-discovery** — Streamlit otomatis memindai folder bernama
-   `pages/` dan membuat sidebar navigasi kedua yang bertabrakan. Memanggil `st.navigation()` eksplisit
-   menonaktifkan perilaku ini. Modul halaman meng-*expose* fungsi `render()` tanpa argumen.
-2. **Checkpoint = wrapper dict**, bukan flat state_dict. Struktur:
-   `{model_state_dict, architecture, lr_config, cnn_config, fixed_config}`. Selalu ekstrak `model_state_dict`.
-3. **`weights_only=False` disengaja** — checkpoint berisi objek numpy non-tensor (`numpy.dtype`, numpy scalar)
-   yang ditolak default PyTorch ≥2.6. Aman karena checkpoint adalah artefak milik sendiri (*trusted*).
-4. **Preprocessing wajib sebelum tokenisasi** — model dilatih pada kolom `text_bert`, bukan `full_text`.
-   Melewati preprocessing → *train-serve skew*.
-5. **HTML flush-left di `st.markdown(unsafe_allow_html=True)`** — HTML berindentasi bisa disalahartikan parser
-   markdown sebagai *code block*, menyebabkan tag literal (`</div>`) ter-render sebagai teks.
-
----
-
-## 5. Spesifikasi Model & Data
-
-### 5.1 Arsitektur Model — IndoBERTCNN Dual-Path
+### 5.2 Alur Prediksi Batch CSV
 
 ```
-Input Tweet → IndoBERT (indobert-base-p2) → last_hidden_state [batch, 128, 768]
-                                  │
-              ┌───────────────────┴────────────────────┐
-       Path 1: [CLS] token                   Path 2: CNN 1D multi-kernel
-       (konteks global)                      (pola n-gram lokal, k=[1,2,3])
-       Dropout(0.1)                          Conv1d ×3 → ELU → GlobalMaxPool
-       [batch, 768]                          [batch, 256×3 = 768]
-              └───────────── Concatenate [batch, 1.152] ─────────────┘
-                                  │
-              Dropout(0.5) → Dense(256, ELU) → Dropout(0.5) → Dense(3) → Softmax
-                                  │
-                    [Positif | Negatif | Netral]
+Pengguna membuka aplikasi
+   → Pilih tab "Upload CSV"
+   → Unggah file CSV (maksimal 10 MB)
+   → Sistem mendeteksi kolom teks dan menampilkan preview
+   → Pengguna memilih jumlah baris via slider
+   → Klik "Analisis Batch"
+   → Sistem menjalankan preprocessing dan inference batch
+   → Tabel hasil + chart distribusi ditampilkan
+   → Pengguna dapat mengunduh CSV hasil prediksi
 ```
 
-Path CNN **melengkapi** `[CLS]`, bukan menggantikan.
+### 5.3 Alur Prediksi Sample Data
 
-### 5.2 Hyperparameter (harus identik dengan training)
-
-| Parameter | Nilai | Parameter | Nilai |
-|-----------|-------|-----------|-------|
-| Backbone | `indobenchmark/indobert-base-p2` | Dropout (head) | 0.5 |
-| N-gram (kernel CNN) | [1, 2, 3] | CLS Dropout | 0.1 |
-| Filter size | 256 | Dense size | 256 (ELU) |
-| Activation | ELU | Max length | 128 token |
-| LR BERT / CNN | 1e-5 / 1e-4 | Batch size | 32 |
-| Weight decay | 0.01 | Validasi | 5-Fold Stratified CV |
-
-### 5.3 Label Mapping (kritis)
-
-```python
-ID2LABEL = {0: "positive", 1: "negative", 2: "neutral"}
 ```
-⚠️ Urutan **non-standar** (positive=0). Harus identik dengan urutan saat training. Divalidasi empiris:
-kalimat positif→positive, negatif→negative, netral→neutral.
+Pengguna membuka aplikasi
+   → Pilih tab "Sample Data"
+   → Klik "Analisis Sample"
+   → Sistem menjalankan prediksi untuk 10 tweet sample
+   → Tabel hasil + chart distribusi ditampilkan
+```
 
-### 5.4 Dataset
+### 5.4 Alur Live Crawling
 
-| Atribut | Nilai |
-|---------|-------|
-| Sumber | Platform X (Twitter) |
-| Tools scraping | tweet-harvest (Node.js/Playwright) — *di luar aplikasi* |
-| Kata kunci | "mbg", "makan bergizi gratis" |
-| Periode | Januari 2025 – Januari 2026 |
-| Total raw | 172.009 tweet |
-| Total berlabel | 6.642 tweet (manual annotation) |
-| Distribusi | Positif 2.625 (39.5%) · Negatif 2.085 (31.4%) · Netral 1.932 (29.1%) |
-| Split | Train/Val 5.313 (80%) · Test 1.329 (20%, fixed) |
-| Imbalance handling | Random Undersampling (kondisi S2 — terpilih vs S1 Class Weighting) |
+```
+Pengguna membuka aplikasi
+   → Pilih tab "Crawling"
+   → Masukkan auth_token X + parameter crawling (keyword, tanggal, limit)
+   → Klik "Mulai Crawling"
+   → Sistem menjalankan tweet-harvest melalui Node.js
+   → Tweet hasil crawling ditampilkan
+   → Klik "Analisis Hasil Crawling"
+   → Sistem menjalankan preprocessing dan inference batch
+   → Tabel hasil + chart distribusi ditampilkan
+```
 
-### 5.5 Performa Model (Test Set, 1.329 tweet)
+### 5.5 Alur Eksplorasi Project Showcase
 
-| Metrik | Nilai | | F1 per Kelas | Nilai |
-|--------|-------|---|--------------|-------|
-| **F1-Macro** | **0.8547** | | Positif | 0.8891 |
-| **Accuracy** | **85.70%** | | Negatif | 0.8717 |
-| Precision (macro) | 0.8551 | | Netral | 0.8034 |
-| Recall (macro) | 0.8585 | | | |
-
-### 5.6 Pipeline Preprocessing (4 langkah, identik NB02)
-
-1. **Case folding & HTML unescape** — lowercase, decode entitas HTML.
-2. **Cleaning** — hapus URL/mention/hashtag non-whitelist, emoji→frasa, normalisasi mata uang/tanggal/angka,
-   emotikon ASCII→kata, repetisi huruf.
-3. **Tokenization** — whitespace split (helper untuk langkah 4).
-4. **Normalization** — normalisasi slang (kamus Nasal + custom), negasi (`gak`/`nggak`→`tidak`), dedup frasa.
-   Output: `text_bert`.
-
-Kamus (`assets/kamus/*.csv`): degradasi anggun bila file hilang (dict kosong, no crash), kecuali kamus Nasal
-yang **auto-download** & cache di `colloquial-indonesian-lexicon.csv`. `_load_all_dicts()` di-cache.
+```
+Pengguna membuka aplikasi
+   → Pilih menu "Tentang" pada sidebar
+   → Halaman project showcase ditampilkan
+   → Pengguna dapat menelusuri informasi penelitian, arsitektur, metrik, dataset, dan metodologi
+```
 
 ---
 
-## 6. Requirement Fungsional
+## 6. Arsitektur Sistem
 
-### FR-1 — Prediksi Teks Tunggal (Tab "Input Teks")
-- Input `text_area` maks 512 karakter + penghitung karakter.
-- Tombol "Analisis" (primary) → `predict_single()` dengan spinner "Menganalisis sentimen...".
-- Output **result card**: Kategori Sentimen (berwarna + emoji), Confidence Score, dan 3 progress bar
-  probabilitas per kelas.
-- Section "Detail Teks" (bukan collapsible): perbandingan teks Original vs `text_bert` setelah preprocessing.
+### 6.1 Arsitektur Level Tinggi
 
-### FR-2 — Prediksi Batch CSV (Tab "Upload CSV")
-- Upload CSV (maks 10MB), fallback encoding UTF-8 → Latin-1.
-- Auto-deteksi kolom `full_text` (fallback kolom pertama), preview 5 baris.
-- Slider jumlah baris (10–500, step 10, default 100).
-- Prediksi dengan spinner batch → metrik ringkas (4 kolom), pie chart distribusi, tabel hasil + probabilitas,
-  dan tombol download CSV hasil (`utf-8-sig`).
+Aplikasi menggunakan arsitektur berlapis (layered architecture) yang memisahkan tanggung jawab antara antarmuka, logika aplikasi, dan model.
 
-### FR-3 — Prediksi Sample Data (Tab "Sample Data")
-- 10 tweet MBG terkurasi (positif/negatif/netral) sebagai demo cepat tanpa upload.
-- Prediksi dengan spinner → tabel hasil + pie chart distribusi.
+```
+┌────────────────────────────────────────────────┐
+│  Lapisan Antarmuka (Streamlit)                 │
+│  app.py + pages/{prediksi, tentang}.py         │
+└────────────────────┬───────────────────────────┘
+                     │
+┌────────────────────▼───────────────────────────┐
+│  Lapisan Logika Aplikasi                       │
+│  utils/{preprocessing, predictor, crawler,     │
+│         styles}.py                             │
+└────────────────────┬───────────────────────────┘
+                     │
+┌────────────────────▼───────────────────────────┐
+│  Lapisan Model                                 │
+│  model/{model_def.py, checkpoint.pt}           │
+└────────────────────┬───────────────────────────┘
+                     │
+┌────────────────────▼───────────────────────────┐
+│  Lapisan Sumber Daya                           │
+│  assets/kamus/  +  model/tokenizer_cache/      │
+└────────────────────────────────────────────────┘
+```
 
-### FR-4 — Project Showcase (Halaman "Tentang")
-- Hero + highlight strip (Accuracy, F1-Macro, ukuran dataset, jumlah kelas).
-- Profil peneliti + judul skripsi + abstrak.
-- Metrik performa, F1 per kelas, distribusi dataset (donut), confusion matrix (heatmap).
-- Diagram arsitektur, tabel hyperparameter, hasil K-Fold (S1 vs S2).
-- Informasi dataset, langkah metodologi, referensi utama, tech stack.
-
-### FR-5 — Loading & Error State
-- Model di-load sekali per sesi (`@st.cache_resource`) dengan spinner + badge status device.
-- Error `FileNotFoundError` → pesan setup checkpoint; error lain → pesan gagal load.
-- Semua prediksi (tunggal & batch) memakai `st.spinner` dengan keterangan kontekstual.
-
----
-
-## 7. Requirement Non-Fungsional
-
-| Kategori | Requirement / Implementasi |
-|----------|----------------------------|
-| **Performa (cold start)** | Tokenizer di-cache lokal (`model/tokenizer_cache/`), warm-up forward pass, `@st.cache_resource` |
-| **Performa (inference)** | Device auto-select: **MPS > CUDA > CPU** |
-| **Kompatibilitas** | PyTorch ≥2.0, transformers ≥4.40, Python 3.9+ (diuji 3.9) |
-| **Reprodusibilitas** | Preprocessing identik training; config model hardcoded + tersimpan di checkpoint |
-| **Ketahanan (resilience)** | Kamus hilang → degradasi anggun; prediksi batch gagal per-item → fallback neutral |
-| **UX / Visual** | Dark theme konsisten, native Streamlit primitives (`st.container(border=True)`, `st.metric`), ikon Material tetap ter-render |
-| **Batasan input** | CSV maks 10MB / 500 baris; teks maks 512 karakter |
-
----
-
-## 8. Tech Stack
-
-| Layer | Teknologi |
-|-------|-----------|
-| Frontend / App | Streamlit ≥1.35 (native multipage `st.navigation`) |
-| Model / Inference | PyTorch ≥2.0, HuggingFace Transformers ≥4.40, IndoBERT (`indobert-base-p2`) |
-| Data | pandas ≥2.0, numpy ≥1.24 |
-| Visualisasi | Plotly ≥5.18 |
-| Tokenisasi | sentencepiece, protobuf |
-| Utilitas | requests (auto-download kamus Nasal) |
-
----
-
-## 9. Temuan Deep Review
-
-### 9.1 Kualitas & Kebenaran (Correctness)
-
-| # | Temuan | Severity | Rekomendasi |
-|---|--------|----------|-------------|
-| C1 | Label mapping urutan non-standar (`positive=0`) | ⚠️ Info | Sudah divalidasi empiris & konsisten dipakai. Pertahankan; jangan ubah tanpa cek notebook training. |
-| C2 | `weights_only=False` saat load checkpoint | ⚠️ Info | Aman untuk artefak sendiri. Jika suatu saat deploy publik, jangan load checkpoint dari sumber tak terpercaya. |
-| C3 | Teks pengguna diinterpolasi ke `unsafe_allow_html` tanpa escaping (section "Detail Teks Original") | 🟡 Low | Risiko rendah untuk demo lokal single-user. Bila deploy publik: bungkus `teks_input` dengan `html.escape()` (mitigasi reflected-HTML/XSS). |
-| C4 | Fallback preprocessing (<2 kata → teks mentah) melewati proteksi train-serve skew | 🟡 Low | Dampak minor pada input sangat pendek; terima sebagai *tradeoff* atau beri catatan pada UI. |
-
-### 9.2 Kebersihan Kode (Cleanliness / Dead Code)
-
-| # | Temuan | Rekomendasi |
-|---|--------|-------------|
-| D1 | `predict_batch()` di `predictor.py` tidak lagi dipakai (tab batch pakai loop inline `predict_single`) | Hapus, atau refactor tab batch untuk memakainya kembali (DRY) |
-| D2 | `import time` di `prediksi.py` tidak terpakai | Hapus |
-| D3 | `additional_stopwords_mbg.csv` ada tapi tidak di-load `preprocessing.py` | Wajar (pipeline BERT tanpa stopword removal). Hapus file jika benar-benar tak dipakai, atau dokumentasikan. |
-| D4 | Konstanta `LABEL2ID` / `LABEL_NAMES` diekspor tapi minim pemakaian | Simpan bila untuk referensi; opsional dibersihkan |
-
-### 9.3 Efisiensi & Skalabilitas
-
-| # | Temuan | Rekomendasi |
-|---|--------|-------------|
-| E1 | Prediksi batch bersifat **sekuensial** (1 teks per forward pass), bukan *batched* melalui model | Untuk 500 baris bisa lambat. Peluang optimasi: tokenisasi & inferensi dalam *mini-batch* (mis. 32) untuk percepatan signifikan di GPU/MPS. |
-| E2 | Preprocessing memuat kamus besar (Nasal ~3MB) sekali via cache | Sudah optimal (`@st.cache_resource`). |
-
-### 9.4 Ketahanan & Deployment
-
-| # | Temuan | Rekomendasi |
-|---|--------|-------------|
-| R1 | Tidak ada test suite / linter | Untuk skripsi dapat diterima. Bila dilanjutkan: tambah smoke test untuk `predict_single` (3 kalimat label diketahui) & validasi pipeline preprocessing. |
-| R2 | Checkpoint 481MB git-ignored, wajib ditaruh manual | Terdokumentasi di README/CLAUDE.md. Pertimbangkan Git LFS / rilis terpisah bila perlu distribusi. |
-| R3 | Aplikasi ditargetkan lokal (bukan cloud) | Sesuai tujuan. Untuk Streamlit Community Cloud: perlu strategi hosting checkpoint & pastikan MPS/GPU tidak diasumsikan. |
-
----
-
-## 10. Struktur Proyek
+### 6.2 Struktur Direktori
 
 ```
 streamlit-mbg-bert-cnn/
-├── app.py                     # Entry point + st.navigation routing
+├── app.py                     # Entry point + st.navigation()
 ├── requirements.txt
-├── CLAUDE.md                  # Panduan arsitektur untuk agent/dev
-├── README.md                  # Setup & run
-├── PRD.md                     # Dokumen ini
+├── README.md
 ├── .streamlit/
-│   └── config.toml            # Tema dark + toolbarMode minimal
+│   └── config.toml            # Konfigurasi tema Streamlit
 ├── model/
-│   ├── model_def.py           # class IndoBERTCNN
-│   ├── indobert_cnn_dualpath_S2.pt   # checkpoint (git-ignored, manual)
-│   └── tokenizer_cache/       # cache tokenizer (di-commit)
+│   ├── model_def.py           # Definisi kelas IndoBERTCNN
+│   ├── indobert_cnn_dualpath_S2.pt   # Checkpoint model
+│   └── tokenizer_cache/       # Cache tokenizer offline
 ├── utils/
-│   ├── predictor.py           # load + inference (cache, warm-up, device)
-│   ├── preprocessing.py       # pipeline 4-langkah (identik NB02)
-│   └── styles.py              # CSS global + render_result_card()
+│   ├── predictor.py           # Load model + inference
+│   ├── preprocessing.py       # Pipeline preprocessing 4 tahap
+│   ├── crawler.py             # Integrasi tweet-harvest
+│   └── styles.py              # CSS global + komponen tampilan
 ├── pages/
-│   ├── prediksi.py            # Home (Input Teks / Upload CSV / Sample Data)
-│   └── tentang.py             # Project showcase
-└── assets/kamus/              # kamus slang/emoji/akun/hashtag/lexicon
+│   ├── prediksi.py            # Halaman utama prediksi
+│   └── tentang.py             # Halaman project showcase
+└── assets/
+    ├── sample_data.csv        # 10 tweet MBG terkurasi
+    └── kamus/                 # Kamus preprocessing custom
+        ├── kamus_alay_mbg.csv
+        ├── demoji_code_mbg.csv
+        ├── akun_x_mbg.csv
+        ├── whitelist_hashtag_mbg.csv
+        └── additional_stopwords_mbg.csv
 ```
 
+### 6.3 Peran Modul
+
+| Modul                    | Tanggung Jawab                                                              |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `app.py`                 | Entry point aplikasi, routing halaman via `st.navigation()`                 |
+| `pages/prediksi.py`      | Halaman utama dengan 4 tab (Input Teks, CSV, Sample, Crawling)              |
+| `pages/tentang.py`       | Halaman project showcase                                                    |
+| `utils/preprocessing.py` | Pipeline preprocessing 4 tahap identik dengan pipeline training             |
+| `utils/predictor.py`     | Load model checkpoint, inisialisasi tokenizer, dan fungsi inference         |
+| `utils/crawler.py`       | Integrasi dengan `tweet-harvest` untuk live crawling data                   |
+| `utils/styles.py`        | CSS global aplikasi dan komponen `render_result_card`                       |
+| `model/model_def.py`     | Definisi arsitektur kelas `IndoBERTCNN` (Dual-Path)                         |
+| `assets/kamus/`          | Kamus custom domain MBG (slang, emoji, akun, hashtag) untuk preprocessing   |
+
 ---
 
-## 11. Roadmap / Rekomendasi Lanjutan (Opsional)
+## 7. Spesifikasi Model
 
-| Prioritas | Item | Sumber |
-|-----------|------|--------|
-| Tinggi | Batched inference untuk tab CSV (percepatan 500 baris) | E1 |
-| Sedang | Hapus dead code (`predict_batch`, `import time`) | D1, D2 |
-| Sedang | Escape HTML pada input pengguna bila akan deploy publik | C3 |
-| Rendah | Smoke test minimal untuk regresi prediksi | R1 |
-| Rendah | Git LFS / rilis untuk checkpoint | R2 |
+### 7.1 Arsitektur
+
+Model **IndoBERT-CNN Dual-Path** menggabungkan dua representasi komplementer dari IndoBERT:
+
+- **Path 1 - Konteks Global:** representasi token `[CLS]` dari IndoBERT dengan dropout regularization.
+- **Path 2 - Pola N-gram Lokal:** CNN 1D multi-kernel dengan Global Max Pooling untuk menangkap pola sekuensial lokal.
+- **Concatenation Layer:** menggabungkan output kedua path menjadi vektor dimensi 1.536.
+- **Classifier Head:** rangkaian Dropout → Dense (ELU) → Dropout → Dense (Softmax) untuk klasifikasi 3 kelas.
+
+### 7.2 Hyperparameter Final
+
+| Parameter              | Nilai                             |
+| ---------------------- | --------------------------------- |
+| Backbone               | `indobenchmark/indobert-base-p2`  |
+| Max Sequence Length    | 128 token                         |
+| Kernel N-gram CNN      | `[1, 2, 3]`                       |
+| Filter Size CNN        | 256                               |
+| Activation Function    | ELU                               |
+| Dense Size             | 256                               |
+| Dropout (CLS)          | 0.1                               |
+| Dropout (Head)         | 0.5                               |
+| Learning Rate BERT     | 1 × 10⁻⁵                          |
+| Learning Rate CNN      | 1 × 10⁻⁴                          |
+| Batch Size             | 32                                |
+| Weight Decay           | 0.01                              |
+| Metode Validasi        | 5-Fold Stratified Cross-Validation |
+| Kondisi Data           | Random Undersampling (S2)         |
+
+### 7.3 Label Mapping
+
+| ID | Label      |
+| -- | ---------- |
+| 0  | `positive` |
+| 1  | `negative` |
+| 2  | `neutral`  |
+
+### 7.4 Format Checkpoint
+
+Model checkpoint (`indobert_cnn_dualpath_S2.pt`) tersimpan sebagai dictionary yang berisi:
+
+- `model_state_dict`: bobot model
+- `label2id` dan `id2label`: mapping label
+- `bert_model_name`: identifier backbone
+- `cnn_config`: konfigurasi arsitektur CNN
+- `lr_config`, `fixed_config`: metadata training
+- `test_metrics`, `per_class_f1`: performa evaluasi
 
 ---
 
-## 12. Kesimpulan
+## 8. Spesifikasi Data
 
-Sistem telah **memenuhi seluruh tujuan produk (G1–G5)**: model penelitian dapat didemonstrasikan secara live,
-hasil terjaga identik dengan pipeline training (tanpa train-serve skew), disajikan dalam antarmuka dua halaman
-yang profesional, mendukung input manual/CSV/sample, dan reprodusibel di mesin lokal. Kualitas kode baik untuk
-konteks artefak skripsi; temuan review bersifat *minor* (dead code, potensi optimasi batch, catatan keamanan
-untuk skenario deploy publik) dan tidak menghalangi fungsi inti. Aplikasi **siap dipakai untuk demonstrasi
-sidang**.
+### 8.1 Dataset Training
+
+| Atribut               | Nilai                                          |
+| --------------------- | ---------------------------------------------- |
+| Sumber Data           | Platform X (Twitter)                           |
+| Bahasa                | Bahasa Indonesia                               |
+| Kata Kunci            | `makan bergizi gratis`, `mbg`                  |
+| Periode Crawling      | Januari 2025 sampai Januari 2026               |
+| Total Data Mentah     | 172.009 tweet                                  |
+| Total Data Berlabel   | 6.642 tweet                                    |
+| Distribusi Kelas      | Positif 2.625 (39,5%); Negatif 2.085 (31,4%); Netral 1.932 (29,1%) |
+| Split Train + Val     | 5.313 tweet (80%)                              |
+| Split Test            | 1.329 tweet (20%, fixed)                       |
+
+### 8.2 Sample Data Aplikasi
+
+Aplikasi menyertakan `assets/sample_data.csv` berisi 10 tweet terkurasi dengan variasi topik terkait Program MBG untuk keperluan demonstrasi cepat.
+
+---
+
+## 9. Pipeline Preprocessing
+
+Preprocessing pada aplikasi identik dengan pipeline preprocessing pada tahap training untuk memastikan konsistensi hasil prediksi. Pipeline terdiri dari empat tahap yang dijalankan secara berurutan.
+
+### 9.1 Tahap 1 - Case Folding dan HTML Unescape
+
+- Normalisasi seluruh huruf menjadi huruf kecil.
+- Decoding entitas HTML umum (`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&#39;`).
+
+### 9.2 Tahap 2 - Cleaning
+
+- Penghapusan URL, mention, dan hashtag non-whitelist.
+- Konversi emoji menjadi frasa Bahasa Indonesia (kamus `demoji_code_mbg.csv`).
+- Normalisasi format mata uang, tanggal, dan angka.
+- Konversi emotikon ASCII menjadi kata (misal `:)` → `senang`).
+- Normalisasi repetisi huruf berlebih (misal `enaakkk` → `enak`).
+
+### 9.3 Tahap 3 - Tokenization
+
+- Pemisahan teks berdasarkan whitespace sebagai helper untuk tahap normalization.
+
+### 9.4 Tahap 4 - Normalization
+
+- Normalisasi slang berdasarkan kamus Nasal (`colloquial-indonesian-lexicon`) dan kamus custom domain MBG.
+- Penanganan negasi (misal `gak`, `nggak` → `tidak`).
+- Deduplikasi frasa berulang.
+- Output: kolom `text_bert` siap untuk tokenisasi IndoBERT.
+
+---
+
+## 10. Non-Functional Requirements
+
+### NFR-1: Performa
+
+| Metrik                       | Target                                                       |
+| ---------------------------- | ------------------------------------------------------------ |
+| Cold start (model load)      | Kurang dari 15 detik pertama kali                            |
+| Warm inference (single text) | Kurang dari 1 detik pada akselerator, kurang dari 3 detik pada CPU |
+| Batch 500 baris              | Kurang dari 60 detik pada akselerator                        |
+
+**Strategi:** Auto-deteksi device (MPS > CUDA > CPU), caching tokenizer offline melalui `model/tokenizer_cache/`, dan warm-up model saat aplikasi pertama kali dimuat.
+
+### NFR-2: Kompatibilitas
+
+| Aspek           | Dukungan                                        |
+| --------------- | ----------------------------------------------- |
+| Python          | 3.9 dan versi lebih baru                        |
+| Sistem Operasi  | Windows, macOS, Linux                           |
+| Browser         | Chrome, Firefox, Safari, Edge (versi modern)    |
+| Akselerator     | Apple Silicon MPS, NVIDIA CUDA, atau CPU        |
+
+### NFR-3: Reproducibility
+
+- Pipeline preprocessing pada aplikasi harus identik dengan pipeline preprocessing pada training (menghindari train-serve skew).
+- Model checkpoint self-contained dengan seluruh metadata konfigurasi dalam satu file.
+- Tokenizer di-cache secara offline untuk menjamin konsistensi antara environment training dan runtime.
+
+### NFR-4: Input Validation
+
+| Input           | Batasan                                          |
+| --------------- | ------------------------------------------------ |
+| Teks tunggal    | Maksimal 512 karakter                            |
+| File CSV        | Maksimal 10 MB, 500 baris untuk prediksi         |
+| Auth token X    | String cookie `auth_token` valid                 |
+| Crawling limit  | 10 sampai 500 tweet per sesi                     |
+
+### NFR-5: User Experience
+
+- Antarmuka menggunakan Bahasa Indonesia sepenuhnya.
+- Layout responsif untuk resolusi desktop dan tablet.
+- Feedback visual selama proses asynchronous (loading, progress, completion).
+- Result card yang informatif dengan hierarki visual yang jelas.
+- Konsistensi warna, tipografi, dan komponen di seluruh halaman.
+
+### NFR-6: Ekstensibilitas
+
+- Modul preprocessing dapat diperbarui melalui file kamus pada `assets/kamus/` tanpa mengubah kode aplikasi.
+- Model checkpoint dapat diganti melalui penempatan file `.pt` baru pada folder `model/` sesuai format checkpoint standar.
+- Struktur multi-page mendukung penambahan halaman baru melalui folder `pages/`.
+
+---
+
+## 11. Success Metrics
+
+### 11.1 Performa Model
+
+Evaluasi pada test set fixed sebanyak 1.329 tweet:
+
+| Metrik            | Nilai      |
+| ----------------- | ---------- |
+| Accuracy          | 85,70%     |
+| F1-Macro          | 0,8547     |
+| F1-Weighted       | 0,8587     |
+| Precision (Macro) | 0,8551     |
+| Recall (Macro)    | 0,8585     |
+| F1 Kelas Positif  | 0,8891     |
+| F1 Kelas Negatif  | 0,8717     |
+| F1 Kelas Netral   | 0,8034     |
+
+### 11.2 Validasi K-Fold
+
+Hasil 5-Fold Stratified Cross-Validation pada train+val (kondisi S2 Random Undersampling): **F1-Macro rata-rata 0,846 ± 0,016**.
+
+### 11.3 Ketepatan Fungsional
+
+- Seluruh mode input (teks tunggal, batch CSV, sample, crawling) menghasilkan prediksi konsisten pada input yang sama.
+- Preprocessing pada aplikasi menghasilkan `text_bert` yang identik dengan preprocessing pada training.
+- Result card menampilkan probabilitas yang berjumlah 1.0 untuk setiap prediksi.
+
+---
+
+## 12. Tech Stack dan Dependensi
+
+### 12.1 Dependensi Python
+
+| Kategori              | Pustaka                       | Versi Minimal |
+| --------------------- | ----------------------------- | ------------- |
+| Framework Aplikasi    | Streamlit                     | 1.35          |
+| Deep Learning         | PyTorch                       | 2.0           |
+| NLP                   | Transformers (HuggingFace)    | 4.40          |
+| Pengolahan Data       | pandas                        | 2.0           |
+| Komputasi Numerik     | numpy                         | 1.24          |
+| Visualisasi           | Plotly                        | 5.18          |
+| Tokenisasi            | sentencepiece, protobuf       | terbaru       |
+| HTTP Client           | requests                      | terbaru       |
+
+### 12.2 Dependensi Sistem (untuk fitur Crawling)
+
+| Komponen         | Versi Minimal | Kegunaan                          |
+| ---------------- | ------------- | --------------------------------- |
+| Node.js          | 18            | Runtime `tweet-harvest`           |
+| tweet-harvest    | 2.7.1         | Library crawling Twitter/X        |
+| Playwright       | 1.41.1        | Browser automation (auto-install) |
+
+---
+
+## 13. Deployment dan Environment
+
+### 13.1 Target Deployment
+
+Aplikasi dirancang untuk berjalan pada **lingkungan lokal** pengguna (laptop, workstation, atau VM) yang mendukung akses shell dan runtime Python + Node.js.
+
+### 13.2 Prasyarat Perangkat Keras
+
+| Komponen         | Minimal                                  |
+| ---------------- | ---------------------------------------- |
+| Prosesor         | 4 core, 2,0 GHz                          |
+| RAM              | 8 GB                                     |
+| Penyimpanan      | 2 GB kosong                              |
+| Akselerator      | Opsional (NVIDIA CUDA atau Apple MPS)    |
+
+### 13.3 Instalasi
+
+```bash
+# 1. Clone repositori
+git clone https://github.com/roziqinkhoeru/streamlit-mbg-bert-cnn.git
+cd streamlit-mbg-bert-cnn
+
+# 2. Buat dan aktifkan virtual environment
+python -m venv venv
+source venv/bin/activate   # Linux/macOS
+# venv\Scripts\activate    # Windows
+
+# 3. Instalasi dependensi
+pip install -r requirements.txt
+
+# 4. Tempatkan model checkpoint di folder model/
+# File: indobert_cnn_dualpath_S2.pt
+
+# 5. Jalankan aplikasi
+streamlit run app.py
+```
+
+Aplikasi akan terbuka otomatis pada browser di `http://localhost:8501`.
+
+---
+
+## 14. Referensi
+
+### 14.1 Model dan Pustaka
+
+- **IndoBERT Base P2** - `indobenchmark/indobert-base-p2` ([HuggingFace](https://huggingface.co/indobenchmark/indobert-base-p2))
+- **tweet-harvest** - Helmi Satria ([GitHub](https://github.com/helmisatria/tweet-harvest))
+- **Nasal Colloquial Indonesian Lexicon** - Salsabila et al. ([GitHub](https://github.com/nasalsabila/kamus-alay))
+
+### 14.2 Penelitian Terkait
+
+- Devlin et al. (2019). *BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding*.
+- Kim (2014). *Convolutional Neural Networks for Sentence Classification*.
+- Koto et al. (2020). *IndoLEM and IndoBERT: A Benchmark Dataset and Pre-trained Language Model for Indonesian NLP*.
+
+### 14.3 Repositori Penelitian
+
+- Kode penelitian pipeline: [github.com/roziqinkhoeru/mbg_bertn_cnn](https://github.com/roziqinkhoeru/mbg_bertn_cnn)
+- Repositori data lengkap: [bit.ly/codembgbecnn](https://bit.ly/codembgbecnn)
+
+---
+
+**Dokumen ini mendefinisikan spesifikasi produk SentiMBG versi 1.0.**  
+**Departemen Informatika, Fakultas Sains dan Matematika, Universitas Diponegoro.**
